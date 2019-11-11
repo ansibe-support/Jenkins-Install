@@ -1,0 +1,9 @@
+---
+# tasks file for jenkins-install
+
+- name: import jenkins pre-reqs
+  import_tasks: pre-req-jenkins-install.yml
+  become: true 
+- name: import Jenkins Installation script
+  import_tasks: install_jenkins.yml
+  become: true 

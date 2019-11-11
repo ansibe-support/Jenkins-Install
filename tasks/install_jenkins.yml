@@ -1,0 +1,67 @@
+---
+- name: Downlod Jenkins stable version War file
+  become_user: "{{ app_user }}"
+  get_url:
+    url: http://mirrors.jenkins.io/war-stable/"{{ jenkins_war_version }}"/jenkins.war
+    dest: "{{ jenkins_install_path }}"/jenkins.war
+    mode: '0755'
+
+- name: Get Jenkins srart script
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.perm }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+  loop:
+    # - { src: jenkins-start.j2, dest:  "{{ jenkins_install_path }}/bin/jenkins-start.sh", perm: "0755" }
+    # - { src: jenkins-stop.j2, dest:  "{{ jenkins_install_path }}/bin/jenkins-stop.sh", perm: "0755" }
+    - { src: jenkins-jump-start.j2, dest:  "{{ jenkins_install_path }}/bin/jenkins-jump-start.sh", perm: "0755" }
+
+- name: start the jenkins jump-start script
+  shell: sh {{ jenkins_install_path }}/bin/jenkins-jump-start.sh
+  become_user: "{{ app_user }}"
+
+- name: wait for jenkins to become availbe sleep 60
+  wait_for:
+    timeout: 60
+  delegate_to: localhost
+
+- name: check config.xml files is availbe or not
+  stat:
+    path: /var/opt/jenkins/data/config.xml
+  register: statu_path
+
+- name: delete the config file
+  file:
+    state: absent
+    path: /var/opt/jenkins/data/config.xml
+
+
+- name: copy the security groovy script
+  template:
+    src:  securitysetup.groovy.j2
+    dest: {{ jenkins_data_dir}}/data/securitysetup.groovy
+    mode: 0755
+    owner: {{ app_user }}
+    group: {{ app_group }}
+    force: "yes"
+  register: security
+
+- name: Now check wait for Jenkins Script API is availbe
+  shell: curl --user "{{jenkins_admin_user }}":"{{ jenkins_admin_password }}" --head --silent http://localhost:"{{jenkins_port}}"/jenkins/cli/
+  register: jenkinsregister
+  until: jenkinsregister.stdout.find("200 OK") != -1
+  retries: 30
+  delay: 30
+  no_log: True
+
+- name: Run securitysetup Script
+  shell: curl --user "{{jenkins_admin_user }}":"{{ jenkins_admin_password }}"  --data-urlencode "script=$(<{{ jenkins_data_dir }}/data/securitysetup.groovy)" http://localhost:{{ jenkins_port }}/jenkins/script
+  register: security_register
+  no_log: True
+
+- name: failed Jenkins setup 
+  action: fail
+  when: "'configure securitysetup succeded' not in security_register.stdout"
+

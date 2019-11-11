@@ -1,0 +1,56 @@
+// import jenkins.model.*
+// import hudson.security.*
+// import jenkins.model.IdStrategy
+// import hudson.security.LDAPSecurityRealm
+// import hudson.plugins.active_directory.*
+
+// def instance = Jenkins.getInstance()
+
+// def strategy = new GlobalMatrixAuthorizationStrategy()
+
+
+
+
+import hudson.security.*;
+import hudson.plugins.active_directory.*;
+
+import jenkins.*; 
+import jenkins.model.*;
+import hudson.*;
+import  hudson.model.*; 
+def instance_id = Jenkins.getInstance();
+
+def access_stratgey = new ProjectMatrixAuthorizationStrategy();
+
+// creating admin users for the Jenkins 
+{% for admin in jenkins_admins %}
+access_stratgey.add(Jenkins.ADMINISTER, "{{admin}}");
+
+{% endfor %}
+
+
+// create less privilage users
+{% for users in jenkins_users %}
+access_stratgey.add(Item.BUILD, "{{users}}");
+access_stratgey.add(Item.CONFIGURE, "{{users}}");
+access_stratgey.add(Item.READ, "{{users}}");
+access_stratgey.add(Hudson.READ, "{{users}}");
+access_stratgey.add(Item.CANCEL, "{{users}}");
+access_stratgey.add(Item.DISCOVER, "{{users}}");
+access_stratgey.add(Item.WORKSPACE, "{{users}}");
+access_stratgey.add(View.READ, "{{users}}");
+
+
+{% endfor %}
+
+// Providing access to the Ananominous user
+
+access_stratgey.add(View.READ, 'ananominous');
+access_stratgey.add(Item.READ, "ananominous");
+access_stratgey.add(Hudson.READ, "ananominous");
+// access_stratgey.add(Jenkins.ADMINISTER, "ananominous")
+
+instance_id.setAuthorizationStrategy(access_stratgey);
+instance_id.save();
+
+println("exection_script Sucessed")

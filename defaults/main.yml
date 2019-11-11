@@ -1,0 +1,24 @@
+---
+# Default Setings for Jenkins Such as 
+jenkins_java_Xmx: 3072m
+jenkins_Xms: 1024m
+jenkins_port: 8080
+jenkins_version: 2.24
+list_of_jenkins_plugins:
+  - name: active-director
+    version: 1.41
+  - name: ant 
+    version: 1.4
+  - name: ansicolor
+    version: 1.0
+  - name: github
+    version: 1.14.0
+
+back_path: /opt/jenkins 
+backup_file: jenkins-data-backup.tar.gz
+
+jenkinsconfig:
+  - config.xml
+
+backup_location:
+ 

@@ -1,0 +1,64 @@
+---
+- name: create a Jenkins Installation Directory
+  file:
+    path: "{{ jenkins_install_path }}/{{ item }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: 0755
+    state: directory
+  loop:
+    - bin
+
+- name: create Jenkins Folder Structure
+  file:
+    path: {{ jenkins_data_dir }}/data/{{ item }}
+    owner:
+    group: 
+    mode: 0755
+    state: directory
+  loop:
+    - plugins
+    - users
+    - nodes
+    - jobs
+- name: Create Jenkins Data Log Directory
+  file:
+    path: {{ jenkins_data_dir }}/logs
+    owner: {{ app_user }}
+    group: {{ app_group }}
+    mode: 0755
+    state: directory
+    
+- name: Recursively change ownership of a directory Jenkins data Directory Permissions
+  file:
+    path: {{ jenkins_data_dir }}
+    state: directory
+    recurse: yes
+    owner: {{ app_user }}
+    group: {{ app_group }}
+  become: yes
+######### Downloading Jenkins Plugins 
+# - name: Generate Jenkins Path for installation of Jenkins Plugins
+#   shell: curl "https://repo.jenkins-ci.org/api/search/artifact?name={{plugin.name}}-{{plugin.version}}.hpi&repos=releases" -H "X-Result-Detail:info, properties" | jq '.results[0].path' -r
+#   register: result_path
+
+- name: Download Jenkins Plugins into {{ jenkins_data_dir}}/data/plugins
+  shell: "wget https://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/{{plugin.name}}/{{plugin.version}}/{{plugin.name}}-{{plugin.version}}.hpi" -O {{ jenkins_data_dir}}/data/plugins/{{plugin.name}}.jpi
+
+
+  - name: update the file Permissions for plugins
+    file:
+      path: {{jenkins_data_dir}}/data/plugins
+      owner: {{app_user}}
+      group: {{app_group}}
+      state: directory
+      recurse: yes
+      mode: 0755
+
+
+  - name: Now Configure some basic tools such as Maven(Default Configurations)
+    become_user: {{ app_user}}
+    copy:
+      src: hudson.tasks.Maven.xml
+      dest: {{ jenkins_data_dir }}/data/
+      backup: yes
